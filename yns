@@ -1,0 +1,138 @@
+#!/bin/bash
+
+REPO_URL="https://raw.githubusercontent.com/maybe-asdf/yns/main"
+INSTALL_DIR="$HOME/.yns"
+
+mkdir -p "$INSTALL_DIR"
+
+function install_package {
+    PACKAGE="$1"
+    if [ -z "$PACKAGE" ]; then
+        echo "Please provide a package name! Usage: sudo yns install [name]"
+        exit 1
+    fi
+
+    SCRIPT_URL="$REPO_URL/$PACKAGE.sh"
+    HASH_URL="$REPO_URL/$PACKAGE.hash"
+    SCRIPT_PATH="$INSTALL_DIR/$PACKAGE.sh"
+
+    echo "Downloading $PACKAGE..."
+
+    # Download the installation script
+    curl -s -o "$SCRIPT_PATH" "$SCRIPT_URL"
+    if [ $? -ne 0 ]; then
+        echo "Failed to download $PACKAGE.sh"
+        exit 1
+    fi
+
+    # Download the hash file
+    HASH=$(curl -s "$HASH_URL")
+    if [ $? -ne 0 ]; then
+        echo "Failed to download $PACKAGE.hash"
+        rm -f "$SCRIPT_PATH"
+        exit 1
+    fi
+
+    # Verify SHA256
+    echo "$HASH  $SCRIPT_PATH" | sha256sum --check --status
+    if [ $? -ne 0 ]; then
+        echo "Verification of $PACKAGE.sh failed! The file might be corrupted."
+        rm -f "$SCRIPT_PATH"
+        exit 1
+    fi
+
+    echo "$PACKAGE.sh verified. Running the installation..."
+    chmod +x "$SCRIPT_PATH"
+    sudo bash "$SCRIPT_PATH"
+}
+
+
+function addon_package {
+    PACKAGE="$1"
+    if [ -z "$PACKAGE" ]; then
+        echo "Please provide addon name! Usage: yns mini [name]"
+        exit 1
+    fi
+
+    SCRIPT_URL="$REPO_URL/$PACKAGE.sh"
+    HASH_URL="$REPO_URL/$PACKAGE.hash"
+    SCRIPT_PATH="$INSTALL_DIR/$PACKAGE.sh"
+
+    echo "Downloading $PACKAGE..."
+
+    # Download the installation script
+    curl -s -o "$SCRIPT_PATH" "$SCRIPT_URL"
+    if [ $? -ne 0 ]; then
+        echo "Failed to download $PACKAGE.sh"
+        exit 1
+    fi
+
+    # Download the hash file
+    HASH=$(curl -s "$HASH_URL")
+    if [ $? -ne 0 ]; then
+        echo "Failed to download $PACKAGE.hash"
+        rm -f "$SCRIPT_PATH"
+        exit 1
+    fi
+
+    # Verify SHA256
+    echo "$HASH  $SCRIPT_PATH" | sha256sum --check --status
+    if [ $? -ne 0 ]; then
+        echo "Verification of $PACKAGE.sh failed! The file might be corrupted."
+        rm -f "$SCRIPT_PATH"
+        exit 1
+    fi
+
+    echo "$PACKAGE.sh verified. Running the installation..."
+    chmod +x "$SCRIPT_PATH"
+    bash "$SCRIPT_PATH"
+}
+
+function remove_package {
+    PACKAGE="$1"
+    if [ -z "$PACKAGE" ]; then
+        echo "Please provide a package name! Usage: sudo yns remove [name]"
+        exit 1
+    fi
+
+    SCRIPT_PATH="$INSTALL_DIR/$PACKAGE.sh"
+    if [ -f "$SCRIPT_PATH" ]; then
+        echo "Removing $PACKAGE..."
+        rm -f "$SCRIPT_PATH"
+        echo "$PACKAGE removed."
+    else
+        echo "Package $PACKAGE is not installed."
+    fi
+}
+
+function list_packages {
+    echo "Installed packages:"
+    ls "$INSTALL_DIR" | sed 's/.sh$//' || echo "No packages installed."
+}
+
+function help {
+    echo "Usage:"
+    echo "  sudo yns install [name] - install a package"
+    echo "  sudo yns remove [name]  - remove a package (WARNING ONLY REMOVES SCRIPT FILE)"
+    echo "  yns list                - list installed packages"
+    echo "  yns mini [name]         - add functionality to a program (for example vencord onto discord)"
+}
+
+COMMAND="$1"
+case "$COMMAND" in
+    install)
+        install_package "$2"
+        ;;
+    remove)
+        remove_package "$2"
+        ;;
+    list)
+        list_packages
+	;;
+    mini)
+	addon_package "$2"
+	;;
+    *)
+        help
+        ;;
+esac
