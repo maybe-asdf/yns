@@ -9,3 +9,5 @@ Other linux os :
 1. Download latest release
 2. cd into your downloads folder
 3. Run "sudo mv yns /usr/bin/yns" without the quotation mark
+### REMEMBER! 
+Most packages will require git to be installed.
